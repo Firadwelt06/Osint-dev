@@ -1,54 +1,30 @@
 import https from 'node:https'
 
-function fetchText(url) {
+const SEARCH_API_KEY = process.env.SEARCH_API_KEY // set in server/.env, never commit it
+
+function fetchJson(url, headers) {
   return new Promise((resolve, reject) => {
-    https
-      .get(url, (response) => {
-        if (response.statusCode && response.statusCode >= 400) {
-          response.resume()
-          reject(new Error(`Request failed with status ${response.statusCode}`))
-          return
-        }
-
-        let data = ''
-        response.setEncoding('utf8')
-        response.on('data', (chunk) => {
-          data += chunk
-        })
-        response.on('end', () => resolve(data))
+    https.get(url, { headers }, (response) => {
+      let data = ''
+      response.on('data', (chunk) => { data += chunk })
+      response.on('end', () => {
+        try { resolve(JSON.parse(data)) } catch (e) { reject(e) }
       })
-      .on('error', reject)
+    }).on('error', reject)
   })
-}
-
-function extractSearchLinks(text, query) {
-  const matches = [...text.matchAll(/https?:\/\/[^\s"'<>]+/gi)]
-  const links = matches.map((match) => match[0]).filter((link) => !link.includes('google'))
-  return links.slice(0, 3).map((url) => ({
-    url,
-    title: `${query} public result`,
-    snippet: `Public result related to ${query}`,
-  }))
 }
 
 export async function searchPublicData(target) {
   const query = encodeURIComponent(target.name)
-  const urls = [
-    `https://r.jina.ai/http://www.google.com/search?q=${query}`,
-    `https://r.jina.ai/http://www.bing.com/search?q=${query}`,
-  ]
+  const apiKey = process.env.SEARCH_API_KEY
+  const cx = process.env.SEARCH_ENGINE_ID
+  const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${query}&num=5`
 
-  const allResults = []
+  const data = await fetchJson(url, {})
 
-  for (const url of urls) {
-    try {
-      const html = await fetchText(url)
-      const links = extractSearchLinks(html, target.name)
-      allResults.push(...links)
-    } catch {
-      continue
-    }
-  }
-
-  return allResults.slice(0, 6)
+  return (data.items ?? []).map((item) => ({
+    url: item.link,
+    title: item.title,
+    snippet: item.snippet,
+  }))
 }

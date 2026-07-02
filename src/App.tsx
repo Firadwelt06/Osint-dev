@@ -90,7 +90,7 @@ function App() {
   useEffect(() => {
     const interval = window.setInterval(() => {
       void handleRefreshScan()
-    }, 30000)
+    }, 90000)
 
     return () => window.clearInterval(interval)
   }, [watchlist, sources])
@@ -134,10 +134,11 @@ function App() {
         ...current,
       ].slice(0, 6))
       setScanStatus(nextFindings.length > 0 ? `Found ${nextFindings.length} backend signal${nextFindings.length === 1 ? '' : 's'}` : 'No backend hits returned; showing fallback results')
-    } catch {
+    } catch (error) {
       const fallbackFindings = generateFindings(watchlist, sources)
       setFindings(fallbackFindings)
-      setScanStatus('Backend scan unavailable; showing fallback results')
+      const message = error instanceof Error ? error.message : 'Backend scan unavailable'
+      setScanStatus(`Backend scan unavailable: ${message}`)
     } finally {
       setIsScanning(false)
     }

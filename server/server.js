@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express from 'express'
 import { searchPublicData } from './publicData.js'
 
@@ -100,6 +101,7 @@ app.post('/cases/:caseId/scan', async (req, res) => {
   return res.json({ findings })
 })
 
-app.listen(4000, () => {
-  console.log('OSINT backend listening on http://localhost:4000')
+const PORT = process.env.PORT || 4000
+app.listen(PORT, () => {
+  console.log(`OSINT backend listening on http://localhost:${PORT}`)
 })
